@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Literature Clock</title>
+<style>
+:root{
+  --bg1:#6e6255;
+  --bg2:#8a7968;
+  --ink:#f7f0e5;
+  --muted:#e3d7c7;
+  --accent:#e9c08e;
+  --shadow:rgba(0,0,0,.24);
+  --border:rgba(255,255,255,.10);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  overflow:hidden;
+  font-family:Georgia,"Times New Roman",serif;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 22% 20%, rgba(255,255,255,.09), transparent 34%),
+    radial-gradient(circle at 78% 78%, rgba(0,0,0,.07), transparent 40%),
+    linear-gradient(135deg,var(--bg1),var(--bg2));
+  transition:background 1.5s ease;
+}
+body::before{
+  content:"";
+  position:fixed;inset:0;
+  pointer-events:none;
+  border:1px solid var(--border);
+  box-shadow:inset 0 0 90px rgba(0,0,0,.08);
+}
+body.christmas::after{
+  content:"";
+  position:fixed;inset:10px;
+  pointer-events:none;
+  border-radius:22px;
+  border:10px solid transparent;
+  background:
+    radial-gradient(circle, #a83232 0 24%, transparent 26%) 0 0/34px 34px repeat-x,
+    radial-gradient(ellipse, #37563e 0 42%, transparent 44%) 12px 4px/42px 28px repeat-x,
+    radial-gradient(circle, #a83232 0 24%, transparent 26%) 0 100%/34px 34px repeat-x,
+    radial-gradient(ellipse, #37563e 0 42%, transparent 44%) 12px 100%/42px 28px repeat-x;
+  opacity:.55;
+}
+
+#app{
+  height:100%;
+  display:grid;
+  grid-template-rows:minmax(0,1fr) auto;
+  padding:5vh 6vw 3.5vh;
+  gap:2.5vh;
+}
+#main{
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:min(1450px,100%);
+  margin:0 auto;
+}
+#quoteBox{
+  width:100%;
+  min-height:0;
+  flex:1 1 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  padding:1vh 2vw;
+}
+#quote{
+  width:100%;
+  max-height:100%;
+  text-align:center;
+  line-height:1.32;
+  text-wrap:balance;
+  overflow:hidden;
+  opacity:1;
+  transform:translateY(0);
+  transition:opacity .9s ease,transform .9s ease;
+  text-shadow:0 2px 12px var(--shadow);
+}
+#quote.fade{
+  opacity:0;
+  transform:translateY(5px);
+}
+mark{
+  color:var(--accent);
+  background:transparent;
+  font-weight:700;
+}
+#source{
+  flex:0 0 auto;
+  text-align:center;
+  margin-top:2vh;
+  color:var(--muted);
+  font-size:clamp(17px,2vw,27px);
+  line-height:1.35;
+}
+#title{
+  font-style:italic;
+  color:var(--ink);
+  font-weight:600;
+}
+#author{margin-top:.25em}
+
+#footer{
+  text-align:center;
+  font-family:Arial,Helvetica,sans-serif;
+  line-height:1;
+  text-shadow:0 2px 10px var(--shadow);
+}
+#clock{
+  font-weight:300;
+  font-size:clamp(42px,6vw,78px);
+  letter-spacing:.015em;
+}
+#ampm{
+  font-size:.42em;
+  margin-left:.28em;
+  vertical-align:.2em;
+  letter-spacing:.06em;
+}
+#date{
+  margin-top:.55em;
+  font-size:clamp(16px,1.7vw,24px);
+  color:var(--muted);
+  letter-spacing:.02em;
+}
+#status{
+  position:fixed;
+  right:10px;
+  bottom:8px;
+  font:11px Arial,sans-serif;
+  color:rgba(255,255,255,.26);
+}
+#error{
+  display:none;
+  position:fixed;left:50%;top:14px;transform:translateX(-50%);
+  padding:8px 12px;border-radius:10px;
+  background:rgba(70,25,25,.65);color:#fff;
+  font:13px Arial,sans-serif;
+}
+
+body.spring{--bg1:#657565;--bg2:#8a8b73;--accent:#f0d09d}
+body.summer{--bg1:#756754;--bg2:#9a8263;--accent:#f0ca8b}
+body.autumn{--bg1:#6a4c3b;--bg2:#8b6548;--accent:#efc087}
+body.winter{--bg1:#596364;--bg2:#756f67;--accent:#e8c99f}
+body.christmas{--bg1:#5f282b;--bg2:#7b3938;--accent:#f0cf9a}
+
+@media(max-height:650px){
+  #app{padding:3vh 4vw 2vh;gap:1.5vh}
+  #source{margin-top:1vh}
+  #clock{font-size:clamp(36px,5.2vw,64px)}
+  #date{font-size:clamp(14px,1.5vw,20px)}
+}
+</style>
+</head>
+<body>
+<div id="error"></div>
+
+<main id="app">
+  <section id="main">
+    <div id="quoteBox">
+      <div id="quote">Loading your literature clock…</div>
+    </div>
+    <div id="source">
+      <div id="title"></div>
+      <div id="author"></div>
+    </div>
+  </section>
+
+  <footer id="footer">
+    <div id="clock"><span id="timeText">--:--</span><span id="ampm"></span></div>
+    <div id="date"></div>
+  </footer>
+</main>
+
+<div id="status"></div>
+
+<script>
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEGwE_05IyLvWe6RHbB929wNmxPP_ANvX1i23o9v3X8jepFHvz3VrdurlUAdgKsbxLhs2I0xN2zxBm/pub?gid=0&single=true&output=csv";
+const REFRESH_MS = 5 * 60 * 1000;
+const CACHE_KEY = "literature_clock_live_rows_v1";
+
+let rows = [];
+let byTime = new Map();
+let lastMinuteToken = "";
+
+function parseCSV(text){
+  const out=[];
+  let row=[],field="",inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(inQuotes){
+      if(ch === '"'){
+        if(text[i+1] === '"'){ field+='"'; i++; }
+        else inQuotes=false;
+      } else field+=ch;
+    } else {
+      if(ch === '"') inQuotes=true;
+      else if(ch === ","){ row.push(field); field=""; }
+      else if(ch === "\n"){ row.push(field); out.push(row); row=[]; field=""; }
+      else if(ch !== "\r") field+=ch;
+    }
+  }
+  if(field.length || row.length){ row.push(field); out.push(row); }
+  return out;
+}
+function keyify(s){
+  return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+}
+function findHeaderIndex(headers, names){
+  const keys=headers.map(keyify);
+  for(const name of names){
+    const idx=keys.indexOf(keyify(name));
+    if(idx>=0) return idx;
+  }
+  return -1;
+}
+function normalizeTime(raw){
+  let s=String(raw||"").trim();
+  if(!s) return "";
+  s=s.replace(/\s*(AM|PM)\s*$/i,"");
+  const m=s.match(/^(\d{1,2}):(\d{2})/);
+  if(m){
+    let h=parseInt(m[1],10)%12; if(h===0)h=12;
+    return `${h}:${m[2]}`;
+  }
+  // Handle decimal spreadsheet time values if they ever appear.
+  const n=Number(s);
+  if(!Number.isNaN(n) && n>=0 && n<1){
+    const mins=Math.round(n*24*60)%(24*60);
+    let h=Math.floor(mins/60)%12; if(h===0)h=12;
+    return `${h}:${String(mins%60).padStart(2,"0")}`;
+  }
+  return s;
+}
+function loadRowsFromCSV(text){
+  const grid=parseCSV(text);
+  if(grid.length<2) throw new Error("The published sheet did not contain quote rows.");
+
+  const headers=grid[0];
+  const iTime=findHeaderIndex(headers,["Time in Digits","Time","Digits"]);
+  const iWords=findHeaderIndex(headers,["Time in Words","Time Words"]);
+  const iQuote=findHeaderIndex(headers,["Book Quotes","Book Quote","Quote"]);
+  const iTitle=findHeaderIndex(headers,["Book Title","Title"]);
+  const iAuthor=findHeaderIndex(headers,["Book Author","Author"]);
+  const iDay=findHeaderIndex(headers,["AM/PM","AM PM","AMPM"]);
+  const iInclude=findHeaderIndex(headers,["Include?","Include"]);
+
+  if(iTime<0 || iQuote<0) throw new Error("Could not find the Time or Quote columns.");
+
+  const parsed=[];
+  for(let r=1;r<grid.length;r++){
+    const g=grid[r];
+    const time=normalizeTime(g[iTime]);
+    const quote=String(g[iQuote]||"").trim();
+    if(!time || !quote) continue;
+
+    const day=(iDay>=0?String(g[iDay]||"Both"):"Both").trim().toUpperCase();
+    const include=(iInclude>=0?String(g[iInclude]||"Yes"):"Yes").trim().toUpperCase();
+
+    parsed.push({
+      time,
+      words:iWords>=0?String(g[iWords]||"").trim():"",
+      quote:quote.replace(/<br\s*\/?>/gi,"\n"),
+      title:iTitle>=0?String(g[iTitle]||"").trim():"",
+      author:iAuthor>=0?String(g[iAuthor]||"").trim():"",
+      day:day || "BOTH",
+      include:include || "YES"
+    });
+  }
+  return parsed;
+}
+function rebuildIndex(){
+  byTime=new Map();
+  for(const row of rows){
+    if(!byTime.has(row.time)) byTime.set(row.time,[]);
+    byTime.get(row.time).push(row);
+  }
+}
+async function refreshSheet(){
+  try{
+    const sep=SHEET_URL.includes("?")?"&":"?";
+    const res=await fetch(SHEET_URL+sep+"_="+Date.now(),{cache:"no-store"});
+    if(!res.ok) throw new Error("Sheet request failed.");
+    const text=await res.text();
+    const fresh=loadRowsFromCSV(text);
+    if(!fresh.length) throw new Error("No usable quotes were found.");
+    rows=fresh;
+    rebuildIndex();
+    localStorage.setItem(CACHE_KEY,JSON.stringify(rows));
+    document.getElementById("error").style.display="none";
+    document.getElementById("status").textContent=`Live sheet: ${rows.length.toLocaleString()} quotes`;
+    lastMinuteToken=""; // force re-evaluation
+    updateClock();
+  }catch(err){
+    let cached=[];
+    try{cached=JSON.parse(localStorage.getItem(CACHE_KEY)||"[]")}catch(e){}
+    if(!rows.length && cached.length){
+      rows=cached; rebuildIndex();
+      document.getElementById("status").textContent=`Offline cache: ${rows.length.toLocaleString()} quotes`;
+      lastMinuteToken="";
+      updateClock();
+    }
+    const el=document.getElementById("error");
+    el.textContent=rows.length ? "Using saved quote data — live sheet refresh failed." : "Could not load the published Google Sheet.";
+    el.style.display="block";
+    console.error(err);
+  }
+}
+function displayParts(d){
+  let hour=d.getHours();
+  const ampm=hour>=12?"PM":"AM";
+  let h=hour%12;if(h===0)h=12;
+  return {
+    key:`${h}:${String(d.getMinutes()).padStart(2,"0")}`,
+    text:`${h}:${String(d.getMinutes()).padStart(2,"0")}`,
+    ampm
+  };
+}
+function eligibleRows(key,ampm){
+  return (byTime.get(key)||[]).filter(row=>{
+    const inc=row.include.toUpperCase();
+    if(inc==="NO" || inc==="FALSE" || inc==="0") return false;
+    const d=row.day.toUpperCase();
+    return d==="BOTH" || d==="" || d===ampm;
+  });
+}
+function chooseRow(key,ampm){
+  const choices=eligibleRows(key,ampm);
+  if(!choices.length) return null;
+  const recentKey=`litclock_recent_${key}_${ampm}`;
+  let recent=[];
+  try{recent=JSON.parse(localStorage.getItem(recentKey)||"[]")}catch(e){}
+  const indexed=choices.map((r,i)=>({r,i}));
+  let candidates=indexed.filter(x=>!recent.includes(x.i));
+  if(!candidates.length)candidates=indexed;
+  const picked=candidates[Math.floor(Math.random()*candidates.length)];
+  recent.unshift(picked.i);
+  recent=recent.slice(0,Math.min(5,Math.max(1,choices.length-1)));
+  localStorage.setItem(recentKey,JSON.stringify(recent));
+  return picked.r;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function escapeRegExp(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}
+function highlightedQuote(row){
+  let safe=escapeHtml(row.quote).replace(/\n/g,"<br>");
+  const candidates=[row.words,row.time].filter(Boolean).sort((a,b)=>b.length-a.length);
+  for(const raw of candidates){
+    const rx=new RegExp(escapeRegExp(escapeHtml(raw)),"i");
+    if(rx.test(safe)) return safe.replace(rx,m=>`<mark>${m}</mark>`);
+  }
+  return safe;
+}
+function fitQuote(){
+  const box=document.getElementById("quoteBox");
+  const q=document.getElementById("quote");
+  let size=Math.min(72,Math.max(28,box.clientWidth/18));
+  q.style.fontSize=size+"px";
+  for(let i=0;i<80;i++){
+    if(q.scrollHeight<=box.clientHeight && q.scrollWidth<=box.clientWidth) break;
+    size-=1;
+    if(size<=18)break;
+    q.style.fontSize=size+"px";
+  }
+}
+function applySeason(d){
+  document.body.classList.remove("spring","summer","autumn","winter","christmas");
+  const m=d.getMonth()+1,day=d.getDate();
+  if(m===12 && day<=26) document.body.classList.add("christmas");
+  else if(m>=3 && m<=5) document.body.classList.add("spring");
+  else if(m>=6 && m<=8) document.body.classList.add("summer");
+  else if(m>=9 && m<=11) document.body.classList.add("autumn");
+  else document.body.classList.add("winter");
+}
+function renderRow(key,ampm,row){
+  const q=document.getElementById("quote");
+  q.classList.add("fade");
+  setTimeout(()=>{
+    if(row){
+      q.innerHTML=highlightedQuote(row);
+      document.getElementById("title").textContent=row.title||"";
+      document.getElementById("author").textContent=row.author?`— ${row.author}`:"";
+    }else{
+      q.innerHTML=`No included ${ampm} quote is available for <mark>${escapeHtml(key)}</mark>.`;
+      document.getElementById("title").textContent="";
+      document.getElementById("author").textContent="";
+    }
+    fitQuote();
+    q.classList.remove("fade");
+  },350);
+}
+function updateClock(){
+  const now=new Date();
+  applySeason(now);
+  const p=displayParts(now);
+  document.getElementById("timeText").textContent=p.text;
+  document.getElementById("ampm").textContent=p.ampm;
+  document.getElementById("date").textContent=now.toLocaleDateString("en-US",{
+    weekday:"long",year:"numeric",month:"long",day:"numeric"
+  });
+
+  const token=`${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${p.key}-${p.ampm}`;
+  if(token===lastMinuteToken || !rows.length) return;
+  lastMinuteToken=token;
+  renderRow(p.key,p.ampm,chooseRow(p.key,p.ampm));
+}
+window.addEventListener("resize",fitQuote);
+
+refreshSheet();
+setInterval(updateClock,1000);
+setInterval(refreshSheet,REFRESH_MS);
+</script>
+</body>
+</html>
