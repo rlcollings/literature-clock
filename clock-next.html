@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Literature Clock — Next</title>
+<style>
+:root{
+  --bg1:#6d6258; --bg2:#88786a; --ink:#f8f1e7; --muted:#e5d9ca;
+  --accent:#e9c18f; --shadow:rgba(0,0,0,.25); --ornament:rgba(255,255,255,.30);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  overflow:hidden; font-family:Georgia,"Times New Roman",serif; color:var(--ink);
+  background:
+    radial-gradient(circle at 18% 18%,rgba(255,255,255,.09),transparent 34%),
+    radial-gradient(circle at 82% 78%,rgba(0,0,0,.08),transparent 42%),
+    linear-gradient(135deg,var(--bg1),var(--bg2));
+  transition:background 1.2s ease;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 105px rgba(0,0,0,.10)}
+#app{height:100%;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:4.5vh 6vw 3vh;gap:2vh}
+#main{min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;width:min(1500px,100%);margin:0 auto}
+#quoteBox{width:100%;min-height:0;flex:1 1 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:1vh 1vw}
+#quote{width:100%;max-height:100%;text-align:center;line-height:1.30;text-wrap:balance;overflow:hidden;opacity:1;transform:translateY(0);transition:opacity .8s ease,transform .8s ease;text-shadow:0 2px 12px var(--shadow)}
+#quote.fade{opacity:0;transform:translateY(5px)}
+mark{color:var(--accent);background:transparent;font-weight:700}
+#source{flex:0 0 auto;text-align:center;margin-top:1.5vh;color:var(--muted);font-size:clamp(16px,1.9vw,26px);line-height:1.35;max-width:1200px}
+#title{font-style:italic;color:var(--ink);font-weight:600}
+#author{margin-top:.25em}
+#footer{text-align:center;font-family:Arial,Helvetica,sans-serif;line-height:1;text-shadow:0 2px 10px var(--shadow)}
+#clock{font-weight:300;font-size:clamp(38px,5.4vw,70px);letter-spacing:.015em}
+#ampm{font-size:.42em;margin-left:.28em;vertical-align:.2em;letter-spacing:.06em}
+#date{margin-top:.5em;font-size:clamp(15px,1.55vw,22px);color:var(--muted);letter-spacing:.02em;cursor:pointer;user-select:none}
+#themeNote{margin-top:.55em;font:italic clamp(11px,1.0vw,14px) Georgia,serif;color:rgba(255,255,255,.58);min-height:1.1em;letter-spacing:.03em}
+#status{position:fixed;right:9px;bottom:7px;font:10px Arial,sans-serif;color:rgba(255,255,255,.18)}
+#error{display:none;position:fixed;left:50%;top:12px;transform:translateX(-50%);padding:7px 11px;border-radius:9px;background:rgba(70,25,25,.52);color:#fff;font:12px Arial,sans-serif;z-index:10}
+.ornament{position:fixed;left:3vw;right:3vw;text-align:center;pointer-events:none;z-index:1;font-family:Georgia,serif;font-size:clamp(16px,2.2vw,30px);letter-spacing:.65em;color:var(--ornament);opacity:0;transition:opacity .6s ease}
+#ornamentTop{top:1.1vh} #ornamentBottom{bottom:1.0vh}
+body.decorated .ornament{opacity:.75}
+
+/* Holiday palettes */
+body.valentine{--bg1:#6b3d4a;--bg2:#9a6671;--accent:#f0c1c8;--ornament:rgba(255,220,225,.50)}
+body.stpatrick{--bg1:#365744;--bg2:#638065;--accent:#d9cf8c;--ornament:rgba(215,235,205,.48)}
+body.memorial{--bg1:#41536b;--bg2:#765755;--accent:#ead8ae;--ornament:rgba(245,240,220,.42)}
+body.independence{--bg1:#3b4f6d;--bg2:#76504f;--accent:#ead7aa;--ornament:rgba(255,245,220,.46)}
+body.halloween{--bg1:#3e3936;--bg2:#84553a;--accent:#efba79;--ornament:rgba(240,180,105,.44)}
+body.thanksgiving{--bg1:#654a39;--bg2:#927052;--accent:#efc48d;--ornament:rgba(245,210,165,.44)}
+body.christmas{--bg1:#5e2e31;--bg2:#76503e;--accent:#efd09a;--ornament:rgba(220,235,205,.50)}
+body.newyear{--bg1:#343c50;--bg2:#665f55;--accent:#e8cf92;--ornament:rgba(245,225,165,.48)}
+
+/* Literary-day palettes */
+body.poe{--bg1:#30323a;--bg2:#5a4654;--accent:#cbb8d6;--ornament:rgba(215,200,225,.40)}
+body.austen{--bg1:#657161;--bg2:#9a806d;--accent:#efd3ae;--ornament:rgba(238,225,205,.42)}
+body.dickens{--bg1:#5a493e;--bg2:#7b6855;--accent:#e7c899;--ornament:rgba(235,220,190,.42)}
+body.verne{--bg1:#31545b;--bg2:#6d7764;--accent:#e7cf9a;--ornament:rgba(210,230,220,.42)}
+body.shakespeare{--bg1:#574c3d;--bg2:#7f6c4e;--accent:#ecd09c;--ornament:rgba(240,225,195,.46)}
+body.doyle{--bg1:#4a5559;--bg2:#756451;--accent:#e3c58e;--ornament:rgba(225,220,195,.40)}
+body.hardy{--bg1:#53624f;--bg2:#756951;--accent:#e6c893;--ornament:rgba(225,220,190,.40)}
+body.wells{--bg1:#3b5058;--bg2:#6b625b;--accent:#d9c7a1;--ornament:rgba(210,220,220,.40)}
+body.wilde{--bg1:#54506c;--bg2:#80705d;--accent:#e7c78f;--ornament:rgba(225,215,235,.42)}
+body.alcott{--bg1:#6a5651;--bg2:#8a7568;--accent:#ead0aa;--ornament:rgba(235,220,205,.42)}
+body.twain{--bg1:#4d5b57;--bg2:#756b55;--accent:#e7cb96;--ornament:rgba(220,225,205,.40)}
+body.carroll{--bg1:#4d5f68;--bg2:#7d6973;--accent:#e1c4d7;--ornament:rgba(225,215,235,.40)}
+
+@media(max-height:650px){#app{padding:2.8vh 4vw 1.8vh;gap:1.2vh}#source{margin-top:.7vh}#clock{font-size:clamp(34px,4.8vw,60px)}#date{font-size:clamp(13px,1.35vw,19px)}#themeNote{font-size:10px}}
+</style>
+</head>
+<body>
+<div id="error"></div>
+<div id="ornamentTop" class="ornament"></div><div id="ornamentBottom" class="ornament"></div>
+<main id="app">
+  <section id="main">
+    <div id="quoteBox"><div id="quote">Loading your literature clock…</div></div>
+    <div id="source"><div id="title"></div><div id="author"></div></div>
+  </section>
+  <footer id="footer">
+    <div id="clock"><span id="timeText">--:--</span><span id="ampm"></span></div>
+    <div id="date" title="Tap to change today's background"></div>
+    <div id="themeNote"></div>
+  </footer>
+</main>
+<div id="status"></div>
+<script>
+const SHEET_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSEGwE_05IyLvWe6RHbB929wNmxPP_ANvX1i23o9v3X8jepFHvz3VrdurlUAdgKsbxLhs2I0xN2zxBm/pub?gid=0&single=true&output=csv';
+const REFRESH_MS=5*60*1000;
+const CACHE_KEY="literature_clock_live_rows_v2";
+const PALETTE_KEY="literature_clock_palette_override_v1";
+let rows=[],byTime=new Map(),lastMinuteToken="",lastGoodRow=null,lastLoadFailed=false;
+
+const DAILY_PALETTES=[
+  ["#6d6258","#88786a","#e9c18f"],["#5b6b63","#7f8b78","#ead1a5"],["#576978","#7a7c79","#e6c79d"],
+  ["#6f6553","#91806a","#ecc998"],["#4d6665","#71827b","#e0c99c"],["#665660","#8b7473","#ecc3a1"],
+  ["#596154","#777963","#e8cb91"],["#625b57","#806f63","#e9c6a0"],["#4e5d67","#737a82","#e4caa0"],
+  ["#67594e","#89755e","#edc38d"],["#536762","#77877b","#e8d0a5"],["#62515a","#82706b","#ebc6a4"]
+];
+const CLASSIC_AUTHORS=["arthur conan doyle","jane austen","charles dickens","oscar wilde","h. g. wells","mark twain","louisa may alcott","lewis carroll","jules verne","rudyard kipling","thomas hardy","edith wharton","william shakespeare","leo tolstoy","elizabeth gaskell","william makepeace thackeray","stephen crane","alexandre dumas","o. henry","p. g. wodehouse","jerome k. jerome","george gissing","sax rohmer","anna katharine green","a. e. w. mason","don marquis","george meredith","john buchan","freeman wills crofts"];
+
+function parseCSV(text){const out=[];let row=[],field="",inQuotes=false;for(let i=0;i<text.length;i++){const ch=text[i];if(inQuotes){if(ch==='"'){if(text[i+1]==='"'){field+='"';i++;}else inQuotes=false;}else field+=ch;}else{if(ch==='"')inQuotes=true;else if(ch===","){row.push(field);field="";}else if(ch==="\n"){row.push(field);out.push(row);row=[];field="";}else if(ch!=="\r")field+=ch;}}if(field.length||row.length){row.push(field);out.push(row);}return out;}
+function keyify(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");}
+function findHeaderIndex(headers,names){const keys=headers.map(keyify);for(const name of names){const i=keys.indexOf(keyify(name));if(i>=0)return i;}return -1;}
+function normalizeTime(raw){let s=String(raw||"").trim();if(!s)return"";s=s.replace(/\s*(AM|PM)\s*$/i,"");let m=s.match(/^(\d{1,2})[:.](\d{2})/);if(m){let h=parseInt(m[1],10)%12;if(h===0)h=12;return `${h}:${m[2]}`;}const n=Number(s);if(!Number.isNaN(n)&&n>=0&&n<1){const mins=Math.round(n*1440)%1440;let h=Math.floor(mins/60)%12;if(h===0)h=12;return `${h}:${String(mins%60).padStart(2,"0")}`;}return s;}
+function loadRowsFromCSV(text){const grid=parseCSV(text);if(grid.length<2)throw new Error("No quote rows.");const h=grid[0];const iTime=findHeaderIndex(h,["Time in Digits","Time","Digits"]),iWords=findHeaderIndex(h,["Time in Words","Time Words"]),iQuote=findHeaderIndex(h,["Book Quotes","Book Quote","Quote"]),iTitle=findHeaderIndex(h,["Book Title","Title"]),iAuthor=findHeaderIndex(h,["Book Author","Author"]),iDay=findHeaderIndex(h,["AM/PM","AM PM","AMPM"]),iInclude=findHeaderIndex(h,["Include?","Include"]);if(iTime<0||iQuote<0)throw new Error("Time or Quote column missing.");const parsed=[];for(let r=1;r<grid.length;r++){const g=grid[r],time=normalizeTime(g[iTime]),quote=String(g[iQuote]||"").trim();if(!time||!quote)continue;const day=(iDay>=0?String(g[iDay]||"Both"):"Both").trim().toUpperCase()||"BOTH";const include=(iInclude>=0?String(g[iInclude]||""):"").trim().toUpperCase();parsed.push({time,words:iWords>=0?String(g[iWords]||"").trim():"",quote:quote.replace(/<br\s*\/?>/gi,"\n"),title:iTitle>=0?String(g[iTitle]||"").trim():"",author:iAuthor>=0?String(g[iAuthor]||"").trim():"",day,include});}return parsed;}
+function rebuildIndex(){byTime=new Map();for(const row of rows){if(!byTime.has(row.time))byTime.set(row.time,[]);byTime.get(row.time).push(row);}}
+function isIncluded(row){const v=(row.include||"").toUpperCase();return !(v==="NO"||v==="FALSE"||v==="0"||v==="N");}
+async function refreshSheet(){try{const sep=SHEET_URL.includes("?")?"&":"?";const res=await fetch(SHEET_URL+sep+"_="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error("Sheet request failed.");const fresh=loadRowsFromCSV(await res.text());if(!fresh.length)throw new Error("No usable quotes.");rows=fresh;rebuildIndex();localStorage.setItem(CACHE_KEY,JSON.stringify(rows));lastLoadFailed=false;document.getElementById("error").style.display="none";document.getElementById("status").textContent=`Live sheet: ${rows.length.toLocaleString()} quotes`;if(!lastMinuteToken)updateClock();}catch(err){lastLoadFailed=true;let cached=[];try{cached=JSON.parse(localStorage.getItem(CACHE_KEY)||"[]");}catch(e){}if(!rows.length&&cached.length){rows=cached;rebuildIndex();document.getElementById("status").textContent=`Offline cache: ${rows.length.toLocaleString()} quotes`;}const el=document.getElementById("error");el.textContent=rows.length?"Using saved quote data — live refresh failed.":"Could not load the published Google Sheet.";el.style.display="block";console.error(err);}}
+function displayParts(d){let h24=d.getHours(),ampm=h24>=12?"PM":"AM",h=h24%12;if(h===0)h=12;return{key:`${h}:${String(d.getMinutes()).padStart(2,"0")}`,text:`${h}:${String(d.getMinutes()).padStart(2,"0")}`,ampm};}
+function opposite(ampm){return ampm==="AM"?"PM":"AM";}
+function tieredChoices(key,ampm){const base=(byTime.get(key)||[]).filter(isIncluded);const exact=base.filter(r=>(r.day||"").toUpperCase()===ampm);const both=base.filter(r=>{const d=(r.day||"").toUpperCase();return d==="BOTH"||d==="";});const opp=base.filter(r=>(r.day||"").toUpperCase()===opposite(ampm));return exact.length?exact:both.length?both:opp;}
+function classicWeight(row){const a=(row.author||"").toLowerCase();return CLASSIC_AUTHORS.some(x=>a.includes(x))?2:1;}
+function chooseWeighted(items){let pool=[];for(const item of items){const w=classicWeight(item);for(let i=0;i<w;i++)pool.push(item);}return pool[Math.floor(Math.random()*pool.length)];}
+function chooseRow(key,ampm){const choices=tieredChoices(key,ampm);if(!choices.length)return null;const recentKey=`litclock_recent_v2_${key}_${ampm}`;let recent=[];try{recent=JSON.parse(localStorage.getItem(recentKey)||"[]");}catch(e){}let candidates=choices.filter(r=>!recent.includes(`${r.title}|${r.author}|${r.quote}`));if(!candidates.length)candidates=choices;const picked=chooseWeighted(candidates);const sig=`${picked.title}|${picked.author}|${picked.quote}`;recent.unshift(sig);recent=recent.slice(0,Math.min(6,Math.max(1,choices.length-1)));localStorage.setItem(recentKey,JSON.stringify(recent));return picked;}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function escapeRegExp(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+function highlightedQuote(row){let safe=escapeHtml(row.quote).replace(/\n/g,"<br>");const candidates=[row.words,row.time].filter(Boolean).sort((a,b)=>b.length-a.length);for(const raw of candidates){const rx=new RegExp(escapeRegExp(escapeHtml(raw)),"i");if(rx.test(safe))return safe.replace(rx,m=>`<mark>${m}</mark>`);}return safe;}
+function fitQuote(){const box=document.getElementById("quoteBox"),q=document.getElementById("quote");let size=Math.min(74,Math.max(26,box.clientWidth/18));q.style.fontSize=size+"px";for(let i=0;i<90;i++){if(q.scrollHeight<=box.clientHeight-4&&q.scrollWidth<=box.clientWidth-4)break;size-=1;if(size<=16)break;q.style.fontSize=size+"px";}}
+
+function nthWeekdayOfMonth(year,month,weekday,n){const first=new Date(year,month,1);const offset=(weekday-first.getDay()+7)%7;return new Date(year,month,1+offset+7*(n-1));}
+function lastWeekdayOfMonth(year,month,weekday){const last=new Date(year,month+1,0);const offset=(last.getDay()-weekday+7)%7;return new Date(year,month,last.getDate()-offset);}
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function dayKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
+function dateHash(d){const s=dayKey(d);let h=0;for(const ch of s)h=((h<<5)-h)+ch.charCodeAt(0);return Math.abs(h);}
+function clearThemeClasses(){document.body.className="";document.getElementById("ornamentTop").textContent="";document.getElementById("ornamentBottom").textContent="";document.getElementById("themeNote").textContent="";}
+function setOrnaments(text){document.body.classList.add("decorated");document.getElementById("ornamentTop").textContent=text;document.getElementById("ornamentBottom").textContent=text;}
+function applyPalette(p){document.documentElement.style.setProperty("--bg1",p[0]);document.documentElement.style.setProperty("--bg2",p[1]);document.documentElement.style.setProperty("--accent",p[2]);}
+function themeForDate(d){const y=d.getFullYear(),m=d.getMonth()+1,day=d.getDate();
+  // Holiday priority
+  if((m===12&&day===31)||(m===1&&day===1))return{cls:"newyear",note:"New Year",orn:"✦   ✧   ✦   ✧   ✦"};
+  if(m===12&&day>=15&&day<=25)return{cls:"christmas",note:"Christmas season",orn:"❦   ●   ❦   ●   ❦"};
+  const thanks=nthWeekdayOfMonth(y,10,4,4);const tStart=new Date(thanks);tStart.setDate(thanks.getDate()-3);const tEnd=new Date(thanks);tEnd.setDate(thanks.getDate()+3);if(d>=new Date(tStart.getFullYear(),tStart.getMonth(),tStart.getDate())&&d<=new Date(tEnd.getFullYear(),tEnd.getMonth(),tEnd.getDate()+1))return{cls:"thanksgiving",note:"Thanksgiving week",orn:"❧   •   ❧   •   ❧"};
+  if(m===10&&day>=29&&day<=31)return{cls:"halloween",note:"Halloween",orn:"◆   ◇   ◆   ◇   ◆"};
+  if(m===7&&day>=2&&day<=4)return{cls:"independence",note:"Independence Day",orn:"★   ☆   ★   ☆   ★"};
+  const memorial=lastWeekdayOfMonth(y,4,1);const memStart=new Date(memorial);memStart.setDate(memorial.getDate()-2);if(d>=new Date(memStart.getFullYear(),memStart.getMonth(),memStart.getDate())&&d<=new Date(memorial.getFullYear(),memorial.getMonth(),memorial.getDate()+1))return{cls:"memorial",note:"Memorial Day",orn:"★   •   ★   •   ★"};
+  if(m===3&&day>=15&&day<=17)return{cls:"stpatrick",note:"St. Patrick’s Day",orn:"☘   ·   ☘   ·   ☘"};
+  if(m===2&&day>=12&&day<=14)return{cls:"valentine",note:"Valentine’s Day",orn:"♥   ·   ♥   ·   ♥"};
+  // Literary days
+  const lit={"1-19":{cls:"poe",note:"Edgar Allan Poe Day",orn:"✦   •   ✦"},"1-27":{cls:"carroll",note:"Lewis Carroll Day",orn:"♢   ◇   ♢"},"2-7":{cls:"dickens",note:"Charles Dickens Day",orn:"❧   •   ❧"},"2-8":{cls:"verne",note:"Jules Verne Day",orn:"✦   ○   ✦"},"4-23":{cls:"shakespeare",note:"Shakespeare & World Book Day",orn:"❦   •   ❦"},"5-22":{cls:"doyle",note:"Arthur Conan Doyle Day",orn:"◇   •   ◇"},"6-2":{cls:"hardy",note:"Thomas Hardy Day",orn:"❧   •   ❧"},"9-21":{cls:"wells",note:"H. G. Wells Day",orn:"○   ✦   ○"},"10-16":{cls:"wilde",note:"Oscar Wilde Day",orn:"◆   ✧   ◆"},"11-29":{cls:"alcott",note:"Louisa May Alcott Day",orn:"❦   •   ❦"},"11-30":{cls:"twain",note:"Mark Twain Day",orn:"≈   •   ≈"},"12-16":{cls:"austen",note:"Jane Austen Day",orn:"❧   ◇   ❧"}};
+  return lit[`${m}-${day}`]||null;
+}
+function applyTheme(d){clearThemeClasses();const special=themeForDate(d);if(special){document.body.classList.add(special.cls);document.getElementById("themeNote").textContent=special.note;setOrnaments(special.orn);return;}
+  let override=null;try{override=JSON.parse(localStorage.getItem(PALETTE_KEY)||"null");}catch(e){}
+  let index;if(override&&override.day===dayKey(d))index=override.index%DAILY_PALETTES.length;else index=dateHash(d)%DAILY_PALETTES.length;applyPalette(DAILY_PALETTES[index]);document.getElementById("themeNote").textContent="";
+}
+function cyclePalette(){const d=new Date();if(themeForDate(d))return;let override=null;try{override=JSON.parse(localStorage.getItem(PALETTE_KEY)||"null");}catch(e){}const current=(override&&override.day===dayKey(d))?override.index:(dateHash(d)%DAILY_PALETTES.length);const next=(current+1)%DAILY_PALETTES.length;localStorage.setItem(PALETTE_KEY,JSON.stringify({day:dayKey(d),index:next}));applyTheme(d);}
+
+function renderRow(row){const q=document.getElementById("quote");q.classList.add("fade");setTimeout(()=>{if(row){q.innerHTML=highlightedQuote(row);document.getElementById("title").textContent=row.title||"";document.getElementById("author").textContent=row.author?`— ${row.author}`:"";lastGoodRow=row;}else{q.innerHTML="";document.getElementById("title").textContent="";document.getElementById("author").textContent="";}requestAnimationFrame(()=>{fitQuote();q.classList.remove("fade");});},300);}
+function updateClock(){const now=new Date();applyTheme(now);const p=displayParts(now);document.getElementById("timeText").textContent=p.text;document.getElementById("ampm").textContent=p.ampm;document.getElementById("date").textContent=now.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});const token=`${dayKey(now)}-${p.key}-${p.ampm}`;if(token===lastMinuteToken||!rows.length)return;lastMinuteToken=token;renderRow(chooseRow(p.key,p.ampm));}
+window.addEventListener("resize",fitQuote);document.getElementById("date").addEventListener("click",cyclePalette);
+refreshSheet();setInterval(updateClock,1000);setInterval(refreshSheet,REFRESH_MS);
+</script>
+</body>
+</html>
